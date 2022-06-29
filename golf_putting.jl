@@ -125,7 +125,7 @@ end
 # ╔═╡ 58b19647-edfa-47ad-87cd-5a6e4c0d5da7
 @model function trigon_reg(x, n,  y, r, R)
 	# priors
-	σ ~ truncated(Normal(0, 2.5); lower=0) # não é alpha, é α
+	σ ~ truncated(Normal(0, 2.5); lower=0)
 	
 	# likelihood
 	for i in 1:length(y)
@@ -168,9 +168,6 @@ end
 
 # ╔═╡ eb8ebfa6-c12c-4fe7-9362-74529983e17d
 simulated_data
-
-# ╔═╡ 6a94f094-cdb3-4b6c-828e-602ddbf9c4e7
-chain_principles["σ"]
 
 # ╔═╡ 00000000-0000-0000-0000-000000000001
 PLUTO_PROJECT_TOML_CONTENTS = """
@@ -2086,6 +2083,5 @@ version = "0.9.1+5"
 # ╠═44aaea26-e7d4-4cfd-8ec4-f1b8e31f1860
 # ╠═dba50454-a49d-49e9-a91b-65beda97aeb2
 # ╠═eb8ebfa6-c12c-4fe7-9362-74529983e17d
-# ╠═6a94f094-cdb3-4b6c-828e-602ddbf9c4e7
 # ╟─00000000-0000-0000-0000-000000000001
 # ╟─00000000-0000-0000-0000-000000000002
