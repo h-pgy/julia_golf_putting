@@ -21,6 +21,98 @@ begin
 	seed!(123);
 end
 
+# ╔═╡ 191ae0af-00be-4d9d-ac41-26a7482287a1
+md"""
+# Revisitando o modelo de Golf Putting
+## *Modelagem de primeiros princípios com Julia e Turing.JL*
+
+### Trabalho final para a disciplina Computação Científica com Julia
+
+
+##### Henrique Pougy
+##### **RA**: 622.150.028  
+"""
+
+# ╔═╡ 578eb057-5020-414d-801f-7058b7760cf7
+md"""
+#### Leia-me:
+
+Neste Pluto Notebook, revisito o modelo de Golf Putting publicado inicialmente por Gelman e Nolan (2002) e aperfeiçoado por Gelman (2019a). 
+
+A proposta original de Gelman e Nolan (2002), também presente em Gelman (2019a), tem o objetivo de demonstrar os benefícios de se empreender a modelagem através dos primeiros princípios. 
+
+Esta abordagem se diferencia dos métodos padronizados fundamentados na estatística frequentsita comumente ensinados nos cursos de graduação na medida em que ela permite incorporar de forma direta na construção do modelo estatístico os conhecimentos existentes sobre o problema que se quer modelar. Em outras palavras, essa abordagem permite reduzir a distância entre o modelo conceitual e o modelo estatístico.
+
+Por isso, a abordagem através dos primeiros princípios se concilia muito bem com a estatística Bayesiana, na medida em que esta última permite ao pesquisador se desvencilhar dos pressupostos de normalidade presentes na quase totalidade dos modelos frequentistas. Aliada à modelagem através dos primeiros princípios, a estatística Bayesiana, com sua visão subjetiva da probabilidade, possibilita aos pesquisadores se livrar das amarras e armadilhas do p-valor e dos testes significância baseados na rejeição de hipóteses nula realizados de forma quase automática nas ciências sociais aplicadas (ver Gigerenzer 2004 sobre a *mindless statistics*).
+
+Como veremos abaixo, essa abordagem, se realizada a partir de um modelo conceitual que de fato tenha aderência ao problema que se quer resolver, traz ganhos expressivos em termos da acurácia do modelo estatístico. Ela aumenta também a explicabilidade do modelo estatístico, na medida em que ele incorpora diretamente parâmetros do modelo conceitual.
+
+Além disso, ao incorporar esses parâmetros, a abordagem através dos primeiros princípios permite realizar simulações que não seriam possíveis na abordagem tradicional. Estas simulações podem ter grande valor no processo de tomada de decisão, permitindo construir cenários a partir dos resultados do modelo ajustado. 
+
+Este último ponto é a pequena contribuição que buscamos realizar com este trabalho. Envelopando a modelagem realizada por Gelman (2019a) em um problema de negócio fictício, mostraremos como o modelo gerado por meio da abordagem de primeiros princípios (e da estatística bayesiana) nos permite realizar simulações para tomar decisões bem-informadas sobre este problema de negócio que não seriam possíveis com o uso da modelagem frequentista tradicional. 
+
+A narrativa mencionada acima foi apresentada como trabalho final da disciplina de Modelagem e Simulação do Programa de Pós-Graduação em Informática e Gestão do Conhecimento. Os slides estão disponíveis [aqui](https://github.com/h-pgy/julia_golf_putting/blob/main/Modelagem%20e%20Simula%C3%A7%C3%A3o_Henrique%20Pougy.pdf).
+
+Neste Pluto NoteBook, apresentaremos de forma comentada o código no qual se baseou a apresentação.
+
+#### Fontes e licença:
+
+Os dados utilizados foram extraídos de Gelman (2019b).
+Os modelos originais foram implementados por Gelman (2019a) em código STAN (licença BSD 3-clause).
+
+Eles foram vertidos pelo autor deste trabalho para a linguagem Julia, utilizando o ecossistema Turing.JL. Os resultados obtidos com o Turing são equivalentes aos de STAN.
+"""
+
+# ╔═╡ a2b3eeea-3296-4551-a707-a78240024ebe
+md"""
+#### O problema de negócio
+
+Imagine o leitor que foi contratado para trabalhar como consultor em ciência de dados para o dono de um mini-golfe de uma pequena cidade.
+
+O dono do mini-golfe lhe narra o seguinte problema que seu negócio tem enfrentado (seu desafio é auxiliá-lo a resolvê-lo):
+
+>  Tenho uma quantidade pequena de clientes fiéis. Eles vêm ao mini-golfe costumeiramente há anos e são a base de meu negócio. Com o tempo, o nível de dificuldade dos buracos de meu campo de golfe foi ficando muito fácil para eles, e, a pedido deles, fui criando novos desafios e aumentando a dificuldade. Isso manteve eles cativos. No entanto, nos últimos anos, tenho notado que os novos clientes nunca retornam. Após conversar com alguns deles, cheguei à conclusão que temia: o nível de dificuldade do campo está muito alto. Sem conseguir marcar pontos, eles ficam desestimulados e não retornam mais para jogar. Preciso de ajuda para conseguir cativar esses novos clientes e ampliar minha base de consumidores, sem perder os clientes costumeiros.
+
+Logo você percebe que o caminho a ser seguido será **reduzir a dificuldade do jogo** e comenta isso.
+
+Em resposta, ele lhe fornece as seguintes informações (ou *restrições*) sobre o desafio:
+
+> * Se a dificuldade for reduzida de forma excessiva, os clientes costumeiros se desinteressarão e deixarão de consumir;
+> * O jogo deve permanecer competitivo, para que os novos clientes também não se desinteressem rapidamente (jogos fáceis demais são legais da primeira vez, mas logo deixam de ser divertidos);
+> * Não há recursos e tampouco espaço físico para criar duas pistas separadas com dificuldades distintas;
+
+"""
+
+# ╔═╡ c921cdd3-a23d-4396-956e-9dffce7ff029
+md"""
+#### Objetivo
+
+Após refletir sobre o desafio e suas restrições, você chega à conclusão que o objetivo do trabalho será:
+
+> Reduzir a dificuldade do jogo para que os jogadores mais inábeis tenham a mesma probabilidade, em média, de fazer pontos (acertar o putting) do que os jogadores com habilidade média.
+
+
+Para auxiliar em seu trabalho, o dono do mini-golfe lhe fornecesse uma base de dados que ele coletou no último ano sobre as jogadas em seu campo.
+"""
+
+# ╔═╡ bbd0fdc4-b10c-4222-829e-1a7bc1f2c06e
+md"""
+#### Carregando os dados
+
+Nas células abaixo, parseamos os dados e os carregamos em um DataFrame.
+
+Esses dados consistem em uma tabela com 19 linhas e 3 colunas.
+
+Cada registro representa uma quantidade de tentativas de putting a uma determinada distância, realizada por jogadores distintos em buracos distintos.
+
+As colunas têm o seguinte significado:
+
+* x: a distância, em pés, do local onde o putting foi arremessado até o buraco de golfe;
+* n: a quantidade de tentativas registradas realizadas a esta distância (incluindo acertos e erros);
+* y: a quantidade de acertos registrados realizados a esta distância;
+
+"""
+
 # ╔═╡ 24c591be-4ea1-476e-a3a7-619cddc64792
  dados = """
 x n y
@@ -65,18 +157,99 @@ end
 # ╔═╡ 46d5d738-0d1e-415c-adab-e2cafeaa2796
 df = DataFrame(colunar_data, col_names)
 
+# ╔═╡ 124b05b4-eb6f-47bb-b557-4fc6ef935a7e
+md"""
+#### Taxa de acerto
+
+Na célula abaixo, calculamos a taxa de acerto do putting (coluna denominada 'prob') para uma dada distância a partir da divisão entre a quantidade de acertos de putting nesta distância (coluna 'y') e a quantidade de tentativas (coluna 'n').
+"""
+
 # ╔═╡ 4f3f7eb0-96da-48dc-a2b4-88cd94df797c
 df[!, "prob"] = df[!, "y"]./df[!, "n"]
 
 # ╔═╡ 93621caf-2e99-41a4-8d38-dbb0ed5d0e06
-df
+first(df, 5)
+
+# ╔═╡ 2a2a0fa1-b0dd-46c1-aeb0-28f79649c003
+md"""
+#### Inspecionando os dados
+
+Abaixo, plotamos um gráfico de dispersão relacionando a taxa de acerto para cada distância do buraco.
+
+Como podemos ver:
+
+1. Essa taxa é uma variável que está entre 0 e 1.
+2. Ela decresce à medida que a distância aumenta.
+"""
 
 # ╔═╡ 38fe70be-2ed7-48cb-8989-cd266ef3e6a1
-data(df) *
-	mapping(
-		:x,       # x
-		:prob  # y
-) |> draw
+let
+	aog = data(df) *
+		mapping(
+			:x,       # x
+			:prob  # y
+		);
+	draw(aog; axis=(;
+				title="Taxa de acerto x distância do buraco"))
+end
+
+# ╔═╡ 37ac4bbd-f804-4abb-81ae-a94118c4279e
+md"""
+#### Modelagem conceitual
+
+Após refletir sobre seus dados, você chega à conclusão que:
+
+> Para uma mesma distância, cada tentativa (putting) é independente das precendentes e das seguintes.
+
+Ou, na formalização matemática:
+
+$$P(y_i \vert y_{i-1}, D = d) = P(y_i \vert D=d)$$
+
+Note que isso não valeria se estivéssemos falando de distâncias diferentes (em outras palavra, se a probabilidade não fosse condicionada à distância). 
+
+Pois é naturalmente isso que os jogadores fazem: eles erram o primeiro putting ($y_{i-1}$), mas, ao fazê-lo, reduzem a distância em relação ao segundo, o que aumenta a chance de acertá-lo (ou seja, $P(y_i)$ tende a ser maior).
+"""
+
+# ╔═╡ da6cb22b-606a-40f3-9157-8d2ccb2b9b1a
+md"""
+#### Modelagem tradicional
+
+Após realizar a modelagem conceitual acima e concluir que as amostras são indepentes, você decide realizar a abordagem tradicional e seguir as recomendações de livro-texto que recebeu durante a graduação.
+
+Você abre então (ainda que mentalmente) um fluxograma como o que segue abaixo (reproduzido de McElreath, 2019. p. 2):
+
+"""
+
+# ╔═╡ 9e14ef23-4211-4dbc-bcd2-975e1d2efd63
+begin
+struct ImgHack
+filename
+end
+
+function Base.show(io::IO, ::MIME"image/png", w::ImgHack)
+write(io, read(w.filename))
+end
+
+end
+
+# ╔═╡ 090ba735-5f2e-4d05-914c-2aad5d1ea8d3
+ImgHack("flowchart_mcelreath.png")
+
+# ╔═╡ 9644efe1-fc5e-4d5d-8494-20dabba71520
+md"""
+E conclui que o problema que você deseja modelar possui uma variável dependente categórica que representa a quantidade de sucessos para $n$ tentativas independentes que possuem apenas dois resultados possíveis (sucesso ou falha, i.e., acertar ou errar o buraco). 
+
+Você deseja explicar/prever o valor desta variável dependente em função de uma variável independente contínua: a distância em relação ao buraco no momento da tacada.
+
+O caminho evidente a seguir é realizar uma regressão logística, modelada da seguinte forma:
+
+$y_i \sim binomial(n_j, logit^{-1}(a+bx_j)), for j=1, ..., J.$
+
+Em outras palavras, para cada distância $x$, a quantidade de acertos $y$ pode ser modelada como uma distribuição binomial que representa a função de densidade de probabilidade de $n$ testes de Bernoulli cuja probabilidade de sucesso é definida pela transformação logística de uma função linear do tipo $y=\alpha + \beta x$
+
+Esse modelo é implementado em Turing abaixo, utilizando estatística bayesiana e priors pouco informativos (mas não *flat*):
+
+"""
 
 # ╔═╡ c4cc9746-9057-443e-8fc0-67125e1ff133
 @model function logreg(X, n,  y; predictors=size(X, 2))
@@ -89,32 +262,205 @@ data(df) *
 	
 	# likelihood
 	for i in 1:length(y)
-		y[i] ~ BinomialLogit(n[i], α +  X[i, :] ⋅ β) #\cdot TAB (dot product)
+		p = α +  X[i, :] ⋅ β
+		y[i] ~ BinomialLogit(n[i], p)
 	end
 end;
 
 # ╔═╡ f0d2a6d3-dc72-4a2a-9f73-da9ebca6cf3b
 logistica = logreg(df[!,"x"], df[!, "n"], df[!,"y"])
 
+# ╔═╡ c8dc21af-dd89-4a33-a428-90d267857e1c
+md"""
+Abaixo construímos uma corrente de markov de 2000 amostras utilizando o algoritmo amostrados NUTS (No U-Turn Samples).
+"""
+
 # ╔═╡ 0c54c02a-feb0-490f-94e7-362ee4a78098
-chain_logist = sample(logistica, MH(), 2_000);
+chain_logist = sample(logistica, NUTS(), 2_000);
+
+# ╔═╡ f271a078-da08-43e5-82dd-153b8ac96a7a
+md"""
+Como podemos ver abaixo, o modelo convergiu: R-hat próximo a um e desvio padrão dos parâmetros relativamente baixo. Este último é bastante baixo sobretudo para o parâmetro $\beta[1]$, ou seja, a variável $x$ (distância em pés do buraco) de nosso *dataset*, cujo desvio-padrão é de apenas 0.006 pés.
+"""
 
 # ╔═╡ ab626fc9-9017-4c5f-b2e9-25596ad1db00
 summarystats(chain_logist)
 
+# ╔═╡ db7a28b9-62bf-4978-9661-ab085581f93d
+md"""
+Abaixo inspecionamos o intervalo de credibilidade $2.5% - 97.5%$ e verificamos que há baixa variação entre os extremos (aprox. 0.2 pés).
+"""
+
 # ╔═╡ b3cf6b4e-890f-49de-88bf-74c02d82b440
 quantile(chain_logist)
 
-# ╔═╡ a9aa3e31-bbce-4880-abad-95c4af862b28
-function logodds2prob(logodds::Float64)
-	return exp(logodds) / (1 + exp(logodds))
-end
+# ╔═╡ 2e91e157-c028-4722-bdfe-18648abebeb8
+md"""
+Como podemos ver abaixo, concluímos que, para cada pé de distância a mais em relação ao buraco, a chance de acertar o putting cai em média em 0.77.
+"""
 
-# ╔═╡ 7362a2dd-44a0-43ac-8e27-5002dd9eca1f
-logodds2prob(-0.226852)
+# ╔═╡ c0916713-2a1b-472f-8cd4-a62106a45320
+exp(DataFrame(quantile(chain_logist))[2,"50.0%"])
+
+# ╔═╡ 0cd9cc3d-0d19-4cfd-89e9-4f00cf5ed88d
+md"""
+Por fim, inspecionamos a corrente de markov gerada e notamos que ela convergiu e que, em geral, a Random Walk transitou em torno de um ponto central.
+"""
 
 # ╔═╡ 078d3189-ef00-44ff-8e12-7902a3051c4e
 Plots.plot(chain_logist; colordim=:parameter, dpi=300)
+
+# ╔═╡ bc6e5e77-86b5-4c51-bb7e-b5db82a806d7
+md"""
+#### Avaliação do Primeiro Modelo
+
+Após realização da modelagem, você conclui que, ainda que o ajuste do modelo aos dados tenha sido satisfatório, ele não resolve o problema de negócio, pois:
+
+* A otimização para o problema de negócio dependeria da redução da distância média do putting em relação ao buraco. Mas isso é algo que os jogadores com menor habilidade já realizam. Pois eles tendem a fazer mais de um putting, se aproximando progressivamente do buraco até estarem a uma distância que conseguem acertar. Esse ajuste portanto já é realizado naturalmente pelos jogadores.
+
+* O modelo construído não possui parâmetros que permitam entender a relação entre a probabilidade de acerto do putting e a habilidade do jogador.
+
+"""
+
+# ╔═╡ 2db754b3-ddd8-428e-943d-b88cdbce5b55
+md"""
+#### Modelagem através dos Primeiros Princípios
+
+Após a conclusão de que o modelo anterior não é capaz de resolver seu problema de negócio, você resolve ir jogar mini-golfe para se distrair da frustração inicial.
+
+Depois de errar 3 tentativas de putting e acertar a 4ª, você tem uma ideia, e se da conta da seguinte questão:
+
+> A probabilidade de acerto do putting está relacionada ao ângulo em que a bola é aremessada pela tacada. Se eu jogar com habilidade, esse ângulo é 0º e a bola vai em direção ao buraco em uma linha reta.
+>Mas nem sempre eu consigo controlar o taco perfeitamente. O ângulo varia, portanto, conforme a habilidade do jogador.
+
+Você volta ao escritório e esboça em sua mesa o seguinte esquema (retirado de Gelman, 2019a):
+"""
+
+# ╔═╡ 8d75f44d-a09e-4f85-81f9-708e1bf80c24
+ImgHack("relacao_raio_bola_raio_buraco.png")
+
+# ╔═╡ d287b4e8-665e-422d-9bbd-f7248c1a741c
+md"""
+Vimos que a probabilidade de acertar o buraco no putting está relacionada à habilidade em controlar o ângulo em que a bola é arremessada pela tacada. Quanto maior a capacidade do jogador em controlar esse ângulo para 0º, maior a probabilidade de acerto.
+
+Após alguma reflexão, você conclui que se este ângulo ultrapassar um ângulo limite, a bola irá passar ao lado do buraco, de modo que essa probabilidade de acerto será 0. 
+
+Além disso, você se dá conta de que o ângulo não necessariamente precisa ser 0º: pois o buraco é maior do que a bola, de forma que ela ainda pode entrar no buraco mesmo que entre de forma um pouco angulada, não passando exatamente pelo centro dele. 
+
+Há, portanto, um ângulo limite abaixo do qual a probabilidade de sucesso é 1, e acima do qual a probabilidade de sucesso é 0.
+
+Esse ângulo limite tem relação direta, portanto, com a relação entre o raio da bola e o raio do buraco. Se a bola for menor, será mais fácil acertar o buraco, pois ela terá uma maior amplitude de ângulos para entrar. O mesmo ocorrerá se o buraco for maior - o que é bastante evidente, se imaginarmos um caso extremo: se os buracos do campo de golfe fossem do tamanho de uma piscina, seria muito fácil acertar todos os puttings.
+
+O ângulo limite também deve estar relacionado à distância do putting em relação ao buraco: um pequeno desvio de ângulo em relação aos 0º ideais à uma distância curta acarreta em apenas uma pequena mudança de trajetória na bola ao longo dessa distância, de forma que ainda é possível que ela entre no buraco. No entanto, se essa distância for longa, a bola rolará por uma grande distância na trajetória errada, passando bem longe do buraco.
+
+Mas como calcular esse ângulo limite?
+"""
+
+# ╔═╡ 375ff217-b24e-4772-9876-99ea806bbfb9
+md"""
+#### De volta à trigonometria
+
+Você retorna mentalmente às suas aulas de trigonometria na sétima série e se lembra da definição do seno, conforme a imagem abaixo:
+"""
+
+# ╔═╡ 097c8467-a727-49f9-af53-b6ed148f978e
+ImgHack("seno.png")
+
+# ╔═╡ 66682287-6035-4c9c-a7b5-eee457ba9bba
+md"""
+O seno de um ângulo é definido pela relação entre a altura (ou o cateto oposto) e a hipotenusa (ou o percurso).
+
+Desta forma, para uma dada distância percorrida pela bola, se o ângulo de arremesso for 0º (i.e., se a tacada for perfeita), o percurso será idêntico ao cateto adjacente e a altura será igual a zero (ou seja, o triângulo será apenas uma linha reta). O seno portanto também será zero, uma vez que a altura é zero.
+
+Se o arremesso não for perfeito, o ângulo (doravante $\theta$) será alterado, de forma que seu módulo será maior que o ângulo ideal ($|\theta_{i+1}|>0^{\circ}$). A trajetória da bola também será maior, assim como a altura em relação ao centro do buraco.
+
+A altura, ou cateto oposto, será definida pela distância entre o centro da bola e o centro do buraco no momento de passagem da bola pela localização do buraco no eixo $x$ em um plano cartesiano. Ela será definida pela seguinte fórmula: $h = (y_{bola} - y_{buraco} | x_{bola} = x_{buraco})$.
+
+Você então retorna ao diagrama que desenhou em sua mesa, e conclui que, para que o arremesso tenha sucesso, a altura $h$ necessariamente deve ser menor do que uma altura limite, definida pela seguinte fórmula: $h_{limite} = R_{buraco} - r_{bola}$. 
+
+Note que estamos utilizando os raios ao invés dos diâmetros e o módulo do ângulo ao invés de seu valor real (que pode ser negativo em relação ao ângulo 0º do arremesso perfeito) porque o problema é simétrico. Um erro para "cima" em relação ao centro do buraco é equivalente a um erro "para baixo".
+"""
+
+# ╔═╡ 52448106-e0bc-4a41-8094-84f50aac1b4d
+md"""#### Ângulo limite
+
+O ângulo limite de arremesso da bola, abaixo do qual a probabilidade de sucesso será 1, e acima do qual a probabilidade de sucesso será 0, será definido portanto como o ângulo cujo seno é definido pela seguinte fórmula:
+
+$\sin(\theta) = \frac{h_{limite}}{x}$
+
+Onde $x$ representa a distância do ponto de arremesso do putting em relação ao buraco.
+E, como vimos, $h_{limite}$ corresponde a $R_{buraco} - r_{bola}$.
+
+Nós não sabemos o ângulo, mas, para cada arremesso em nosso *dataset*, sabemos a distância $x$ em relação ao buraco. Além disso, após rápida medição no mini-golfe, descobrimos o diâmetro da bola utilizada, assim como do buraco de golfe (que sãos os tamanhos padrão): respectivamente 1.68 e 4.25 polegadas.
+
+
+Para descobrirmos o ângulo limite, basta utilizar a função inversa do seno ($\sin$): o arcoseno ($\arcsin$).
+
+Assim, o ângulo limite {$\theta$} será definido, para cada distância de arremesso {$x_i$} pela seguinte fórmula:
+
+$\theta_i = \arcsin(\frac{R-r}{x_i})$
+
+onde $R$ e $r$ são constantes que representam, respectivamente, o raio do buraco e o raio da bola de golfe.
+
+"""
+
+# ╔═╡ 8092afd6-413a-42f9-950f-07a5bb296729
+md"""
+#### A Habilidade do jogador
+
+Neste cenário, como vimos, a probabilidade de que um  putting tenha sucesso será definida pela capacidade do jogador em manter o ângulo da tacada em 0º.
+
+Podemos pressupor que qualquer jogador tente acertar, em média, o ângulo em 0º. Como qualquer ângulo diferente de 0º consiste em um erro em relação a esta média, não há razões para crermos que os ângulos destes erros se concentrem mais abaixo ou mais acima de 0º de forma sistemática. Assim, a mediana dos ângulos das tacadas também tenderá a 0º e a distribuição destes erros deve ser simétrica. 
+
+Por fim, em se tratando de erros, estes devem ser aleatórios, com uma maior concentração da distribuição em torno da média e não havendo "preferência" por nenhum erro em específico, de modo que a média também deve ser a moda.
+
+A distribuição de probabilidades dos ângulos de tacadas de putting pode assim ser definida como uma distribuição $Normal$ com média $\mu = 0º$.
+
+O desvio padrão $\sigma$ desta distribuição representará a habilidade média dos jogadores: quanto maior o $\sigma$, maior a variância em torno dos 0º ideais nas tacadas realizadas e, portanto, menor a habilidade do jogador.
+"""
+
+# ╔═╡ a908f8f1-8708-4897-a363-8d2e0d39bcd2
+ImgHack("angulo_da_tacada.png")
+
+# ╔═╡ 85df10f0-d75f-4a40-951c-a9c848cb64a2
+md"""
+#### Probabilidade de acerto
+
+Neste cenário, a probabilidade de acerto (isto é, de que a bola entre no buraco) será portanto definida pela probabilidade de que o ângulo da tacada esteja entre o ângulo limite inferior e o ângulo limite superior na distribuição de probabilidade descrita acima.
+
+Como o problema é simétrico (i.e., $\theta_{inferior} = \theta_{superior}$) e a distribuição descrita acima é uma $Normal$ com média $\mu=0$, esta probabilidade será definida por:
+
+$p = 2\phi(\frac{\theta_{limite}}{\sigma})-1$
+
+Onde $\phi$ representa a função de distribuição cumulativa da Normal.
+"""
+
+# ╔═╡ 73a405ed-a7b1-409b-a784-1280e7f915f9
+md"""
+#### Novo Modelo
+
+A partir desta modelagem conceitual baseada em primeiros princípios, podemos então definir nosso novo modelo.
+
+Ele pode ser descrito pela seguinte expressão matemática, substituindo as variáveis que definimos acima em uma única forma:
+
+$y_i \sim  binomial(n_i, p_i)$
+
+$p_i=2\phi(\frac{\arcsin((R-r)/x_i}{sigma})) -1$
+
+Onde $y_i$ representa a quantidade de acertos para uma dada distância $x_i$, que se distribui em uma distribuição Binomial na qual $n_i$ representa a quantidade de tentativas para essa distância e $p_i$ representa a probabilidade de sucesso da tacada a esta distância.
+
+Esta probabilidade por sua vez será definida pela probabilidade de que o módulo do ângulo $\theta$ da tacada seja inferior ao módulo do ângulo limite para aquela distância $x_i$. Como vimos, essa probabilidade é dada pela função de distribuição cumulativa da Normal na seguinte fórmula: $2\phi(\frac{\theta_{limite}}{\sigma}) - 1$.
+
+O ângulo limite $\theta_{limite}$, por sua vez, será definido pelo arcoseno da altura limite $h_{limite}$ dividida pela distância $x_i$ em que a tacada é realizada, de acordo com a seguinte fórmula: $\theta_{limite} = \arcsin(\frac{(R-r)}{x-i})$
+
+Como o ângulo limite $\theta_i$ varia para cada distância $x_i$, a quantidade de acertos $y_i$ é uma variável aleatória definida por uma distribuição Binominal para cada uma dessas distâncias.
+
+Neste modelo, conhecemos todos os valores, com exceção de $\sigma$, o desvio-padrão que representa o grau de variabilidade do ângulo das tacadas do jogador em relação à média, que é o ângulo ideal 0º.
+
+Para esta variável, definimos como prior uma $Normal$ truncada em 0, de média $\mu=0$ e desvio-padrão $\sigma=2.5$.
+
+O modelo está implementado nas células abaixo, acompanhado de uma função determinística para calcular o ângulo limite a partir dos raios $R$ da bola, $r$ do buraco e da distância $x$.
+"""
 
 # ╔═╡ baa49831-2542-4699-adbe-64e8023cee03
 function max_angle(r, R, x)
@@ -138,13 +484,42 @@ end;
 first_principles = trigon_reg(df[!, "x"], df[!, "n"], df[!, "y"], (1.68/2)/12, (4.25/2)/12)
 
 # ╔═╡ 0b801fcb-b411-425a-bc9a-beb462d6a699
-chain_principles = sample(first_principles, MH(), 2_000);
+chain_principles = sample(first_principles, NUTS(), 2_000);
+
+# ╔═╡ eb9dd6da-765d-4112-b25c-f055795ac49d
+md"""Abaixo verificamos o resultado do modelo: uma distribuição de probabilidade para o parâmetro $\sigma$, que representa a habilidade dos jogadores.
+
+A corrente de markov plotada abaixo mostra que a Random Walk transitou em torno de um mesmo ponto. E que a distribuição amostrada resultante tem moda única, e é aproximadamente simétrica."""
+
+# ╔═╡ f44eb1b1-c7b9-42c7-a903-dc865bc1ba53
+Plots.plot(chain_principles; colordim=:parameter, dpi=300)
+
+# ╔═╡ 0a3211d4-f977-482e-9378-d5895091ace6
+md""" O R-hat é próximo de 1, e o desvio padrão é baixo (0.001)"""
 
 # ╔═╡ 01a0ef52-63dc-47f8-891a-1e4a56f1c0c2
 summarystats(chain_principles)
 
+# ╔═╡ b3adcdbe-0723-4518-b7fd-0edf2d01ba0c
+md"""
+Como podemos ver no intervalo de credibilidade abaixo, o percential (97.5%) que podemos interpretar como representando o grau de controle $\sigma$ dos piores jogadores *que ainda assim conseguiram acertar o putting* é de 0.034.
+"""
+
 # ╔═╡ dbfbd908-99cb-4469-99c9-00df71fe1899
 quantile(chain_principles)
+
+# ╔═╡ eaeb65f0-1503-48d8-9c8a-73f937f9d418
+md"""
+#### Simulação
+
+Nosso novo modelo, desenvolvido a partir dos primeiros princípios, nos trouxe uma nova informação que não tínhamos anteriormente: qual a distribuição do nível de controle dos jogadores ao realizar o putting.
+
+Agora, sabemos que os 2.5% piores jogadores (ou seja, o percentil 97.5% do intervalo de confiabilidade) tem um desvio-padrão médio de 0.034 em relação ao ângulo ideal da tacada de 0º.
+
+Essa informação pode ser utilizada para fomentar a tomada de decisão de nosso cliente com base em evidências.
+
+Pois sabemos também que 
+"""
 
 # ╔═╡ 44aaea26-e7d4-4cfd-8ec4-f1b8e31f1860
 function model_factory(R::Float64)
@@ -160,7 +535,7 @@ begin
 	simulated_data = []
 	for R in 4.25 : 1 : 10
 		temp_model = model_factory(R)
-		corrente = sample(temp_model, MH(), 2_000)
+		corrente = sample(temp_model, NUTS(), 2_000)
 		push!(simulated_data, (R=>mean(corrente["σ"])))
 	end
 	
@@ -168,6 +543,35 @@ end
 
 # ╔═╡ eb8ebfa6-c12c-4fe7-9362-74529983e17d
 simulated_data
+
+# ╔═╡ 11ca5c9d-30c7-456f-9209-929e68b5d99a
+let
+	df_simulado = DataFrame(simulated_data);
+	aog = data(df_simulado) *
+		mapping(
+			:first=>"tamanho do buraco (pol.)",       # x
+		:second =>  "desvio-padrão médio do controle do ângulo" # y
+		);
+	draw(aog; axis=(;
+				title="Dados simulados - tamanho do buraco vs dificuldade"))
+end
+
+# ╔═╡ 70784a1e-bedb-4fe9-8eb5-77cf19184c7d
+md"""
+### Referências
+
+Gelman, Andrew. 2019a. "Model Building and Expansion for Golf Putting". *MC-Stan.org*. Acessado em: 29 de junho de 2022. Disponível em: [https://mc-stan.org/users/documentation/case-studies/golf.html](https://mc-stan.org/users/documentation/case-studies/golf.html)
+
+Gelman, Andrew. 2019b. "New golf putting data! And a new golf putting model!". *Statmodeling.stat*, University of Columbia. Acessado em: 29 de junho de 2022. Disponível em: [https://statmodeling.stat.columbia.edu/2019/03/21/new-golf-putting-data-and-a-new-golf-putting-model/](https://statmodeling.stat.columbia.edu/2019/03/21/new-golf-putting-data-and-a-new-golf-putting-model/)
+
+Gelman, Andrew et Nolan, Deborah. 2002. "A Probability Model for Golf Putting". *Teaching Statistics*, vol. 24, number 3. Acessado em: 29 de junho de 2022. Disponível em: [http://www.stat.columbia.edu/~gelman/research/published/golf.pdf](http://www.stat.columbia.edu/~gelman/research/published/golf.pdf)
+
+Gigerenzer, Gerd. 2004. "Mindless Statistics". *The Journal of Socio-Economics*. Vol. 33, issue 5. Pages 587-606. *Elsevier*. DOI: [https://doi.org/10.1016/j.socec.2004.09.033](https://doi.org/10.1016/j.socec.2004.09.033)
+
+McElreath, Richard. 2019. *Statistical Rethinking: a Bayesian course with examples in R and Stan*. CRC Press. Disponível em:  [https://github.com/Booleans/statistical-rethinking/blob/master/Statistical%20Rethinking%202nd%20Edition.pdf](https://github.com/Booleans/statistical-rethinking/blob/master/Statistical%20Rethinking%202nd%20Edition.pdf)
+
+
+"""
 
 # ╔═╡ 00000000-0000-0000-0000-000000000001
 PLUTO_PROJECT_TOML_CONTENTS = """
@@ -2057,31 +2461,66 @@ version = "0.9.1+5"
 """
 
 # ╔═╡ Cell order:
+# ╟─191ae0af-00be-4d9d-ac41-26a7482287a1
+# ╟─578eb057-5020-414d-801f-7058b7760cf7
 # ╠═2b6aeb36-f028-11ec-2954-9756226e6144
+# ╟─a2b3eeea-3296-4551-a707-a78240024ebe
+# ╟─c921cdd3-a23d-4396-956e-9dffce7ff029
+# ╟─bbd0fdc4-b10c-4222-829e-1a7bc1f2c06e
 # ╠═24c591be-4ea1-476e-a3a7-619cddc64792
 # ╠═5687181f-cee2-4d85-a6c4-c1b3cab43a6f
 # ╠═8b90a5d8-83b4-4b7b-af38-2a2de7faad8e
 # ╠═3cd60cd9-99fa-4eeb-a10b-eb5ee5c171d5
 # ╠═46d5d738-0d1e-415c-adab-e2cafeaa2796
+# ╟─124b05b4-eb6f-47bb-b557-4fc6ef935a7e
 # ╠═4f3f7eb0-96da-48dc-a2b4-88cd94df797c
 # ╠═93621caf-2e99-41a4-8d38-dbb0ed5d0e06
+# ╟─2a2a0fa1-b0dd-46c1-aeb0-28f79649c003
 # ╠═38fe70be-2ed7-48cb-8989-cd266ef3e6a1
+# ╟─37ac4bbd-f804-4abb-81ae-a94118c4279e
+# ╟─da6cb22b-606a-40f3-9157-8d2ccb2b9b1a
+# ╟─9e14ef23-4211-4dbc-bcd2-975e1d2efd63
+# ╟─090ba735-5f2e-4d05-914c-2aad5d1ea8d3
+# ╟─9644efe1-fc5e-4d5d-8494-20dabba71520
 # ╠═c4cc9746-9057-443e-8fc0-67125e1ff133
 # ╠═f0d2a6d3-dc72-4a2a-9f73-da9ebca6cf3b
+# ╟─c8dc21af-dd89-4a33-a428-90d267857e1c
 # ╠═0c54c02a-feb0-490f-94e7-362ee4a78098
+# ╟─f271a078-da08-43e5-82dd-153b8ac96a7a
 # ╠═ab626fc9-9017-4c5f-b2e9-25596ad1db00
+# ╟─db7a28b9-62bf-4978-9661-ab085581f93d
 # ╠═b3cf6b4e-890f-49de-88bf-74c02d82b440
-# ╠═a9aa3e31-bbce-4880-abad-95c4af862b28
-# ╠═7362a2dd-44a0-43ac-8e27-5002dd9eca1f
+# ╟─2e91e157-c028-4722-bdfe-18648abebeb8
+# ╠═c0916713-2a1b-472f-8cd4-a62106a45320
+# ╟─0cd9cc3d-0d19-4cfd-89e9-4f00cf5ed88d
 # ╠═078d3189-ef00-44ff-8e12-7902a3051c4e
+# ╟─bc6e5e77-86b5-4c51-bb7e-b5db82a806d7
+# ╟─2db754b3-ddd8-428e-943d-b88cdbce5b55
+# ╟─8d75f44d-a09e-4f85-81f9-708e1bf80c24
+# ╟─d287b4e8-665e-422d-9bbd-f7248c1a741c
+# ╟─375ff217-b24e-4772-9876-99ea806bbfb9
+# ╟─097c8467-a727-49f9-af53-b6ed148f978e
+# ╟─66682287-6035-4c9c-a7b5-eee457ba9bba
+# ╟─52448106-e0bc-4a41-8094-84f50aac1b4d
+# ╟─8092afd6-413a-42f9-950f-07a5bb296729
+# ╟─a908f8f1-8708-4897-a363-8d2e0d39bcd2
+# ╟─85df10f0-d75f-4a40-951c-a9c848cb64a2
+# ╟─73a405ed-a7b1-409b-a784-1280e7f915f9
 # ╠═baa49831-2542-4699-adbe-64e8023cee03
 # ╠═58b19647-edfa-47ad-87cd-5a6e4c0d5da7
 # ╠═e9e9e814-a52c-41e0-84ec-ae1459cfbee0
 # ╠═0b801fcb-b411-425a-bc9a-beb462d6a699
+# ╟─eb9dd6da-765d-4112-b25c-f055795ac49d
+# ╠═f44eb1b1-c7b9-42c7-a903-dc865bc1ba53
+# ╟─0a3211d4-f977-482e-9378-d5895091ace6
 # ╠═01a0ef52-63dc-47f8-891a-1e4a56f1c0c2
+# ╟─b3adcdbe-0723-4518-b7fd-0edf2d01ba0c
 # ╠═dbfbd908-99cb-4469-99c9-00df71fe1899
+# ╠═eaeb65f0-1503-48d8-9c8a-73f937f9d418
 # ╠═44aaea26-e7d4-4cfd-8ec4-f1b8e31f1860
 # ╠═dba50454-a49d-49e9-a91b-65beda97aeb2
 # ╠═eb8ebfa6-c12c-4fe7-9362-74529983e17d
+# ╠═11ca5c9d-30c7-456f-9209-929e68b5d99a
+# ╟─70784a1e-bedb-4fe9-8eb5-77cf19184c7d
 # ╟─00000000-0000-0000-0000-000000000001
 # ╟─00000000-0000-0000-0000-000000000002
