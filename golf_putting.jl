@@ -518,7 +518,17 @@ Agora, sabemos que os 2.5% piores jogadores (ou seja, o percentil 97.5% do inter
 
 Essa informação pode ser utilizada para fomentar a tomada de decisão de nosso cliente com base em evidências.
 
-Pois sabemos também que 
+Pois sabemos também que o nível de controle pode ser pior (ou seja, aceitar um $\sigma$ maior) caso o tamanho do buraco de golfe seja maior: pois aumentando-se o tamanho do buraco, aumentamos $R$, e portanto aumentamos o ângulo limite $\theta_{limite}$ e, em decorrência, aumentamos a probabilidade de que o ângulo da tacada esteja abaixo do ângulo limite, aumentando, com isso, a probabilidade de acerto da tacada.
+
+Assim, é possível realizar um ajuste no tamanho dos buracos de golfe para aumentar a probabilidade de acerto do putting, diminuindo a dificuldade do jogo sem ter que criar uma nova pista. Isso permitirá manter os novos clientes.
+
+Mas, como o nosso cliente demandou, essa dificuldade não pode ser diminuída de forma excessiva, de modo a afastar os clientes fiéis. Qual deverá ser portanto o novo tamanho?
+
+Ora, nosso modelo aceita um parâmetro constante $R$, que representa o raio do buraco de golfe. Para resolver essa questão, basta simularmos os resultados do modelo para diferentes valores de $R$ e verificarmos a distribuição do grau de controle $\sigma$ resultante.
+
+Há diversos pontos de decisão possível, mas podemos propor o seguinte a princípio: encontrar o valor do raio do buraco de golfe $R$ para o qual a habilidade média dos jogadores que acertaram a tacada $\sigma$ seja equivalente à habilidade média dos 2.5% piores jogadores atuais.
+
+Essa simulação é feita nas células abaixo.
 """
 
 # ╔═╡ 44aaea26-e7d4-4cfd-8ec4-f1b8e31f1860
@@ -541,8 +551,13 @@ begin
 	
 end
 
+# ╔═╡ 4a9f5c22-cbc8-4f95-8d8b-7867efdf43b6
+md"""### Resultado final
+Como podemos ver abaixo, um aumento de apenas 1 polegada no raio do buraco da bola de golfe já será suficiente!
+"""
+
 # ╔═╡ eb8ebfa6-c12c-4fe7-9362-74529983e17d
-simulated_data
+print(simulated_data)
 
 # ╔═╡ 11ca5c9d-30c7-456f-9209-929e68b5d99a
 let
@@ -2516,9 +2531,10 @@ version = "0.9.1+5"
 # ╠═01a0ef52-63dc-47f8-891a-1e4a56f1c0c2
 # ╟─b3adcdbe-0723-4518-b7fd-0edf2d01ba0c
 # ╠═dbfbd908-99cb-4469-99c9-00df71fe1899
-# ╠═eaeb65f0-1503-48d8-9c8a-73f937f9d418
+# ╟─eaeb65f0-1503-48d8-9c8a-73f937f9d418
 # ╠═44aaea26-e7d4-4cfd-8ec4-f1b8e31f1860
 # ╠═dba50454-a49d-49e9-a91b-65beda97aeb2
+# ╟─4a9f5c22-cbc8-4f95-8d8b-7867efdf43b6
 # ╠═eb8ebfa6-c12c-4fe7-9362-74529983e17d
 # ╠═11ca5c9d-30c7-456f-9209-929e68b5d99a
 # ╟─70784a1e-bedb-4fe9-8eb5-77cf19184c7d
